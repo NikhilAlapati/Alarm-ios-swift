@@ -78,7 +78,7 @@ class MainAlarmViewController: UITableViewController{
             cell.detailTextLabel?.alpha = 1.0
             sw.setOn(true, animated: false)
         } else {
-            cell.backgroundColor = UIColor.groupTableViewBackground
+            cell.backgroundColor = UIColor.systemGroupedBackground
             cell.textLabel?.alpha = 0.5
             cell.detailTextLabel?.alpha = 0.5
             sw.setOn(false, animated: false)
@@ -95,6 +95,25 @@ class MainAlarmViewController: UITableViewController{
         let alarm = alarms[indexPath.row]
         alarm.enabled = sender.isOn
         alarms.update(alarm)
+        if(alarm.enabled){
+            var alarmDate: Date = alarm.date
+            // Get the current date and time
+            let currentDate = Date()
+            // Calculate the difference in seconds
+            //scheduling date is eariler than current date
+            if alarmDate < currentDate {
+                //plus one day, otherwise the notification will be fired righton
+                alarmDate = Calendar.current.date(byAdding: .day, value: 1, to: alarmDate)!
+            }
+            let timeDifference = alarmDate.timeIntervalSince(currentDate)
+            // Convert the time difference to hours and minutes
+            let hours = Int(timeDifference / 3600)
+            let minutes = Int((timeDifference.truncatingRemainder(dividingBy: 3600)) / 60)
+            // Format as "HH:mm"
+            let timeString = String(format: "%02d hours %02d minutes", hours, minutes)
+            let duration: TimeInterval = 5.0
+            showInfoMessage(timeString, duration: duration)
+        }
     }
     
     @objc func handleChangeNotification(_ notification: Notification) {
@@ -168,5 +187,45 @@ class MainAlarmViewController: UITableViewController{
     
     @IBAction func unwindFromAddEditAlarmView(_ segue: UIStoryboardSegue) {
         isEditing = false
+    }
+    
+    func showInfoMessage(_ message: String, duration: TimeInterval) {
+        let infoLabel = UILabel()
+        infoLabel.text = message
+        infoLabel.textColor = .white
+        infoLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        infoLabel.textAlignment = .center
+        infoLabel.layer.cornerRadius = 8
+        infoLabel.clipsToBounds = true
+        infoLabel.numberOfLines = 0
+        infoLabel.font = UIFont.systemFont(ofSize: 16)
+
+        // Add the label to the view
+        view.addSubview(infoLabel)
+
+        // Set up constraints (example: centered at the bottom)
+        infoLabel.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            infoLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            infoLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50),
+            infoLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+            infoLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 40)
+        ])
+
+        // Animate its appearance (optional)
+        infoLabel.alpha = 0
+        UIView.animate(withDuration: 0.3) {
+            infoLabel.alpha = 1
+        }
+
+        // Schedule its disappearance
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            UIView.animate(withDuration: 0.5, animations: {
+                infoLabel.alpha = 0
+            }) { _ in
+                infoLabel.removeFromSuperview()
+            }
+        }
     }
 }
